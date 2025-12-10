@@ -90,7 +90,7 @@ jobs:
         shell: cmd
         run: |
           call C:\Miniconda\Scripts\activate
-          conda install -y -c conda-forge cgal boost-cpp gmp mpfr
+          conda install -y -c conda-forge python=${{ matrix.python }} cgal boost-cpp gmp mpfr
 
       # -----------------------------
       # Install cibuildwheel in the runner Python
