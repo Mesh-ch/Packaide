@@ -102,8 +102,6 @@ jobs:
           
       - name: Run tests
         run: uv run python -m pytest test/
-  name: Build Wheels
-
   build-wheels:
     name: Build wheels on ${{ matrix.os }} (Python ${{ matrix.python }})
     runs-on: ${{ matrix.os }}
