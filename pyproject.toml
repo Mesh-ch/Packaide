@@ -54,6 +54,8 @@ dev = [
 [tool.cibuildwheel]
 test-requires = ["parameterized", "shapely", "svgelements", "numpy", "scipy"]
 test-command = "python {project}/test/test_packing.py"
+build = ["cp312-*", "cp313-*"]
+
 
 # Skip 32-bit builds
 skip = ["*-win32", "*-manylinux_i686"]
