@@ -102,3 +102,55 @@ jobs:
           
       - name: Run tests
         run: uv run python -m pytest test/
+  build-windows-wheel:
+    name: Build Windows Wheel
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        py_version: ["3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ matrix.py_version }}
+
+      - name: Install Mamba (faster Conda)
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-name: build
+          create-args: >-
+            python=${{ matrix.py_version }}
+            cgal
+            boost-cpp
+            gmp
+            mpfr
+          channels: conda-forge
+          init-shell: bash cmd.exe powershell
+
+      - name: Activate Conda and install build deps
+        run: |
+          micromamba activate build
+          uv pip install scikit-build-core delvewheel
+
+      - name: Build wheel
+        run: |
+          micromamba activate build
+          set CMAKE_PREFIX_PATH=%CONDA_PREFIX%\Library
+          set PATH=%CONDA_PREFIX%\Library\bin;%PATH%
+          uv build --wheel
+
+      - name: Repair wheel with delvewheel (bundle DLLs)
+        run: |
+          micromamba activate build
+          for %%w in (dist\*.whl) do (
+              delvewheel repair -w dist %%w --add-path "%CONDA_PREFIX%\Library\bin"
+          )
+
+      - name: Upload wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: packaide-windows-wheel
+          path: dist/*.whl
