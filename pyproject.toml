@@ -1,5 +1,55 @@
+[project]
+name = "packaide"
+version = "2.0.0"
+description = "Fast and robust 2D nesting"
+readme = "README.md"
+license = { text = "GPL" }
+requires-python = ">=3.6"
+authors = [
+    { name = "Daniel Anderson", email = "dlanders@cs.cmu.edu" },
+    { name = "Adrian Sy" },
+    { name = "MESH AG", email = "koh@mesh.ch" }
+]
+dependencies = [
+    "numpy>=1.26.0",
+    "scipy>=1.11.0",
+    "shapely>=2.0.0",
+    "svgelements>=1.9.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Mesh-ch/Packaide"
+
 [build-system]
-requires = ["setuptools", "wheel", "scikit-build", "cmake", "ninja"]
+requires = [
+    "scikit-build-core>=0.10.0",
+]
+build-backend = "scikit_build_core.build"
+
+[tool.scikit-build]
+# Minimum CMake version
+cmake.minimum-version = "3.15"
+# Build in verbose mode for debugging
+build.verbose = true
+# Directory where the Python package source is located
+wheel.packages = ["python/packaide"]
+# Install directory for the compiled extension
+wheel.install-dir = "packaide"
+# Build type
+cmake.build-type = "Release"
+# Ensure CMake can find source files
+cmake.source-dir = "."
+
+[tool.scikit-build.cmake.define]
+# Pass build type to CMake
+CMAKE_BUILD_TYPE = "Release"
+
+# Development dependencies (testing, benchmarking)
+[dependency-groups]
+dev = [
+    "parameterized>=0.9.0",
+    "pytest>=8.0.0",
+]
 
 [tool.cibuildwheel]
 test-requires = ["parameterized", "shapely", "svgelements", "numpy", "scipy"]

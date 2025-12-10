@@ -2,13 +2,13 @@
 #                       Build system for Packaide
 # -------------------------------------------------------------------
 # Requirements:
-#   - CMake version 3.0+
+#   - CMake version 3.15+
 #   - A C++17 compiler
 #   - CGAL
 #   - Python 3.6+
 # -------------------------------------------------------------------
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.15...3.28)
 project(Packaide VERSION 2.0
              DESCRIPTION "Fast and robust 2D nesting"
              LANGUAGES CXX)
@@ -57,34 +57,29 @@ target_link_libraries(PackaideLib INTERFACE CGAL::CGAL)
 # -------------------------------------------------------------------
 #                         Python bindings
 
+# Find Python - scikit-build-core sets this up for us
+find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
+message(STATUS "Python_EXECUTABLE = ${Python_EXECUTABLE}")
+message(STATUS "Python_VERSION = ${Python_VERSION}")
+
 # Download Pybind11
 include(FetchContent)
-FetchContent_Declare(pybind
+FetchContent_Declare(pybind11
   GIT_REPOSITORY  https://github.com/pybind/pybind11
-  GIT_TAG         master
+  GIT_TAG         v2.13.6
 )
-FetchContent_GetProperties(pybind)
-if(NOT pybind_POPULATED)
-  message(STATUS "Configuring Pybind11")
-  FetchContent_Populate(pybind)
-  add_subdirectory(${pybind_SOURCE_DIR} EXCLUDE_FROM_ALL)
-endif()
-
-if (PYBIND11_PYTHON_VERSION)
-  set(FIND_PYTHON_VERSION_EXACT ${PYBIND11_PYTHON_VERSION} EXACT)
-endif()
-
-message(STATUS "PYTHON_EXECUTABLE = " ${PYTHON_EXECUTABLE})
+FetchContent_MakeAvailable(pybind11)
 
 add_subdirectory(src)
 
 # -------------------------------------------------------------------
 #                              Tests
+# Only build tests when not being built by scikit-build-core
+if(NOT SKBUILD)
+  enable_testing()
+  add_subdirectory(test)
 
-enable_testing()
-add_subdirectory(test)
-
-# -------------------------------------------------------------------
-#                           Benchmarks
-
-add_subdirectory(benchmark)
+  # -------------------------------------------------------------------
+  #                           Benchmarks
+  add_subdirectory(benchmark)
+endif()
