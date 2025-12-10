@@ -4,6 +4,21 @@ import os
 
 from parameterized import parameterized
 
+
+# Avoid importing the library if we are just listing tests, since this
+# gets ran at configuration time before the library is actually compiled
+# and installed yet
+if not '--list-tests' in sys.argv:
+  # Write out the PYTHONPATH since it affects whether Python will
+  # try to load a source version of the library or an installed one
+  if  __name__ == "__main__":
+    print('Running tests with PYTHONPATH={}'.format(os.environ['PYTHONPATH'] if 'PYTHONPATH' in os.environ else ''))
+    print('Running tests with PATH={}'.format(os.environ['PATH'] if 'PATH' in os.environ else ''))
+
+  import packaide
+  import shapely.geometry
+
+
 # Test files, and the appropriate tolerance and offset to use for each one
 TEST_FILE_DIRECTORY = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'data')
 test_files = [
@@ -33,7 +48,7 @@ def make_polygon_with_holes(boundary, holes):
   for hole in holes:
     if not hole.is_empty:
       if(isinstance(hole,shapely.geometry.MultiPolygon)):
-        for minihole in list(hole):
+        for minihole in hole.geoms:
           all_holes.append(minihole)
       else:
         all_holes.append(hole)
@@ -258,7 +273,4 @@ if __name__ == "__main__":
         tests.extend(['{}.{}'.format(name, test) for test in loader.getTestCaseNames(obj)])
     print('\n'.join(tests))
   else:
-    import packaide
-    import shapely.geometry
-    
     unittest.main()

@@ -87,7 +87,9 @@ if __name__ == "__main__":
   # *** Read the raw time data and produce the scaling plots ***
   else:
 
+    import matplotlib
     import matplotlib.pyplot as plt
+    matplotlib.use('Agg')
 
     avg_time_no_cache = []
     avg_time_cache = []
@@ -103,12 +105,6 @@ if __name__ == "__main__":
           while len(avg_time_no_cache) <= i:
             avg_time_no_cache.append([])
           avg_time_no_cache[i].append(t)
-
-        plt.figure(j+1)
-        plt.xlabel('Number of parts placed')
-        plt.ylabel('Running time (seconds)')
-        plt.gcf().canvas.set_window_title(os.path.basename(test_set))
-        plt.plot(range(2,len(times_no_cache)+1), times_no_cache[1:], label='Without cache')
         
       with open(os.path.join(OUTPUT_DIR, os.path.splitext(os.path.basename(test_set))[0]) + '_cache.txt', 'r') as f_in:
         times_cache = []
@@ -119,9 +115,6 @@ if __name__ == "__main__":
             avg_time_cache.append([])
           avg_time_cache[i].append(t)
 
-        plt.plot(range(2,len(times_cache)+1), times_cache[1:], label='With cache')
-        plt.legend()
-
     # Plot the average time
     averages_no_cache = []
     for i in range(len(avg_time_no_cache)):
@@ -131,10 +124,9 @@ if __name__ == "__main__":
     for i in range(len(avg_time_cache)):
       averages_cache.append(sum(avg_time_cache[i]) / len(avg_time_cache[i]))
 
-    plt.figure(len(test_sets)+1)
+    plt.figure()
     plt.xlabel('Number of parts placed')
     plt.ylabel('Running time (seconds)')
-    plt.gcf().canvas.set_window_title('Average')
     plt.plot(range(2,len(averages_no_cache)+1), averages_no_cache[1:], label='Without cache')
     plt.plot(range(2,len(averages_cache)+1), averages_cache[1:], label='With cache')
     plt.legend()
