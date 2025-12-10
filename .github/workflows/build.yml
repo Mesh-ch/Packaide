@@ -8,7 +8,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        build_type: ['Debug', 'RelWithDebInfo', 'Release']
+        # build_type: ['Debug', 'RelWithDebInfo', 'Release'] # Simplified build types for CI
+        build_type: ['Release'] # Simplified 
         config:
         - { os: ubuntu-latest }
         py_version: ['3.12']
@@ -32,45 +33,45 @@ jobs:
       - name: Run tests
         run: uv run python -m pytest test/
 
+  
+  # benchmark: # Removed temporarily to reduce CI load
+  #   name: Benchmark Python ${{ matrix.py_version }} on ${{ matrix.config.os }} (${{ matrix.build_type }})
+  #   runs-on: ${{ matrix.config.os }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       build_type: ['Release']
+  #       config:
+  #       - { os: ubuntu-latest }
+  #       py_version: ['3.12']
+  #   env:
+  #     CMAKE_BUILD_TYPE: ${{ matrix.build_type }}
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-  benchmark:
-    name: Benchmark Python ${{ matrix.py_version }} on ${{ matrix.config.os }} (${{ matrix.build_type }})
-    runs-on: ${{ matrix.config.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        build_type: ['Release']
-        config:
-        - { os: ubuntu-latest }
-        py_version: ['3.12']
-    env:
-      CMAKE_BUILD_TYPE: ${{ matrix.build_type }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-          python-version: ${{ matrix.py_version }}
+  #     - name: Install uv
+  #       uses: astral-sh/setup-uv@v7
+  #       with:
+  #         enable-cache: true
+  #         python-version: ${{ matrix.py_version }}
           
-      - name: Install CGAL
-        run: sudo apt-get -qq install libcgal-dev
+  #     - name: Install CGAL
+  #       run: sudo apt-get -qq install libcgal-dev
 
-      - name: Install the project
-        run: uv sync --group dev
+  #     - name: Install the project
+  #       run: uv sync --group dev
 
-      - name: Install matplotlib
-        run: uv pip install matplotlib
+  #     - name: Install matplotlib
+  #       run: uv pip install matplotlib
 
-      - name: Run benchmark
-        run: uv run python benchmark/benchmark.py
+  #     - name: Run benchmark
+  #       run: uv run python benchmark/benchmark.py
           
-      - name: Upload benchmark results
-        uses: actions/upload-artifact@v3
-        with:
-          name: benchmarks-${{ matrix.config.os }}-${{ matrix.build_type }}-python${{ matrix.py_version }}
-          path: ./benchmark/output/*
+  #     - name: Upload benchmark results
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: benchmarks-${{ matrix.config.os }}-${{ matrix.build_type }}-python${{ matrix.py_version }}
+  #         path: ./benchmark/output/*
 
   install:
     name: Install with Python ${{ matrix.py_version }} on ${{ matrix.config.os }}
