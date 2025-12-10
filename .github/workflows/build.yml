@@ -76,16 +76,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # -----------------------------
-      # Install Python
-      # -----------------------------
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
 
-      # -----------------------------
-      # Windows: install CGAL stack into Miniconda
-      # -----------------------------
+      - name: Enable Docker (Linux)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: sudo systemctl start docker
+
       - name: Install CGAL and deps via conda-forge
         if: startsWith(matrix.os, 'windows')
         shell: cmd
@@ -93,22 +91,12 @@ jobs:
           call C:\Miniconda\Scripts\activate
           conda install -y -c conda-forge python=${{ matrix.python }} cgal boost-cpp gmp mpfr
 
-      # -----------------------------
-      # Install cibuildwheel in the runner Python
-      # (cibuildwheel will create its own build venvs)
-      # -----------------------------
       - name: Install cibuildwheel
         run: pip install cibuildwheel
 
-      # -----------------------------
-      # Build wheels
-      # -----------------------------
       - name: Build wheels
         run: cibuildwheel --output-dir dist
 
-      # -----------------------------
-      # Upload wheels as artifacts
-      # -----------------------------
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
