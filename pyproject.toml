@@ -76,15 +76,24 @@ before-test = "pip install https://download.lfd.uci.edu/pythonlibs/x6hvwk7i/Shap
 
 # Install CGAL before building wheels on Linux. This is necessary
 # because the wheels are built inside a docker container, which
-# does not have any libraries we have installed.
+# does not have any libraries we have installed
+# Linux: build CGAL & Boost into an isolated prefix to avoid double tags
 [tool.cibuildwheel.linux]
 before-all = [
-  "yum install gmp-devel mpfr-devel wget -y",
-  "wget -q https://archives.boost.io/release/1.84.0/source/boost_1_84_0.tar.gz || wget -q https://sourceforge.net/projects/boost/files/boost/1.84.0/boost_1_84_0.tar.gz",
-  "tar -xzf boost_1_84_0.tar.gz",
-  "cd boost_1_84_0 && ./bootstrap.sh && ./b2 headers && cp -r boost /usr/include/ && cd ..",
-  "git clone --depth 1 --branch v5.6.1 https://github.com/CGAL/cgal.git",
-  "cd cgal && mkdir build && cd build",
-  "cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_BUILD_TYPE=Release -DGMP_INCLUDE_DIR=/usr/include -DGMP_LIBRARIES=/usr/lib64/libgmp.so -DGMPXX_LIBRARIES=/usr/lib64/libgmpxx.so -DMPFR_INCLUDE_DIR=/usr/include -DMPFR_LIBRARIES=/usr/lib64/libmpfr.so ..",
-  "cmake --build . --target install"
+    "yum install -y gmp-devel mpfr-devel wget",
+    # Build Boost headers only
+    "wget -q https://archives.boost.io/release/1.84.0/source/boost_1_84_0.tar.gz",
+    "tar -xzf boost_1_84_0.tar.gz",
+    "mkdir -p /project/deps/include",
+    "cp -r boost_1_84_0/boost /project/deps/include/",
+    # Build CGAL into isolated prefix
+    "git clone --depth 1 --branch v5.6.1 https://github.com/CGAL/cgal.git",
+    "cd cgal && mkdir build && cd build",
+    "cmake -DCMAKE_INSTALL_PREFIX=/project/deps -DCMAKE_BUILD_TYPE=Release -DCGAL_HEADER_ONLY=ON ..",
+    "cmake --build . --target install"
 ]
+
+# Global environment (applies to Linux)
+[tool.cibuildwheel.environment]
+CMAKE_PREFIX_PATH = "/project/deps"
+
