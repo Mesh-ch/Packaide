@@ -102,56 +102,78 @@ jobs:
           
       - name: Run tests
         run: uv run python -m pytest test/
-  build-windows-wheel:
-    name: Build Windows Wheel
-    runs-on: windows-latest
+  name: Build Wheels
+
+  build-wheels:
+    name: Build wheels on ${{ matrix.os }} (Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+
     strategy:
+      fail-fast: false
       matrix:
-        py_version: ["3.12"]
+        os: [windows-latest]
+        python: ["3.12"]
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
+      # --------------------------------
+      # Install Python
+      # --------------------------------
+      - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.py_version }}
+          python-version: ${{ matrix.python }}
 
-      - name: Install Mamba (faster Conda)
+      # ========================================
+      # LINUX WHEEL BUILD (manylinux via cibuildwheel)
+      # ========================================
+      - name: Install CGAL for Linux host (needed for source build)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libcgal-dev gmp-dev libmpfr-dev
+
+      - name: Install cibuildwheel
+        if: matrix.os == 'ubuntu-latest'
+        run: pip install cibuildwheel
+
+      - name: Build Linux wheels (manylinux)
+        if: matrix.os == 'ubuntu-latest'
+        run: cibuildwheel --output-dir dist
+
+      # ========================================
+      # WINDOWS WHEEL BUILD (micromamba)
+      # ========================================
+      - name: Install CGAL (Windows via micromamba)
+        if: matrix.os == 'windows-latest'
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-name: build
           create-args: >-
-            python=${{ matrix.py_version }}
+            python=${{ matrix.python }}
             cgal
             boost-cpp
             gmp
             mpfr
           channels: conda-forge
-          init-shell: bash cmd.exe powershell
+          init-shell: cmd.exe powershell bash
 
-      - name: Activate Conda and install build deps
+      - name: Install cibuildwheel + delvewheel inside env
+        if: matrix.os == 'windows-latest'
         run: |
-          micromamba activate build
-          uv pip install scikit-build-core delvewheel
+          micromamba run -n build pip install cibuildwheel delvewheel
 
-      - name: Build wheel
-        run: |
-          micromamba activate build
-          $env:CMAKE_PREFIX_PATH = "$env:CONDA_PREFIX\Library"
-          $env:PATH = "$env:CONDA_PREFIX\Library\bin;$env:PATH"
-          uv build --wheel
-
-      - name: Repair wheel with delvewheel
+      - name: Build Windows wheels
+        if: matrix.os == 'windows-latest'
         shell: cmd
         run: |
-          micromamba activate build
-          for %%w in (dist\*.whl) do (
-            delvewheel repair -w dist %%w --add-path "%CONDA_PREFIX%\Library\bin"
-          )
+          micromamba run -n build cibuildwheel --output-dir dist
 
-      - name: Upload wheel
+      # ========================================
+      # Upload wheels
+      # ========================================
+      - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: packaide-windows-wheel
+          name: wheels-${{ matrix.os }}
           path: dist/*.whl
