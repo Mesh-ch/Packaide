@@ -85,6 +85,6 @@ before-all = [
   "cd boost_1_84_0 && ./bootstrap.sh && ./b2 headers && cp -r boost /usr/include/ && cd ..",
   "git clone --depth 1 --branch v5.6.1 https://github.com/CGAL/cgal.git",
   "cd cgal && mkdir build && cd build",
-  "cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_BUILD_TYPE=Release ..",
+  "cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_BUILD_TYPE=Release -DGMP_INCLUDE_DIR=/usr/include -DGMP_LIBRARIES=/usr/lib64/libgmp.so -DGMPXX_LIBRARIES=/usr/lib64/libgmpxx.so -DMPFR_INCLUDE_DIR=/usr/include -DMPFR_LIBRARIES=/usr/lib64/libmpfr.so ..",
   "cmake --build . --target install"
 ]
