@@ -5,133 +5,99 @@ jobs:
   test:
     name: Test Python ${{ matrix.py_version }} on ${{ matrix.config.os }} (${{ matrix.build_type }})
     runs-on: ${{ matrix.config.os }}
-    defaults:
-      run:
-        shell: bash
     strategy:
       fail-fast: false
       matrix:
         build_type: ['Debug', 'RelWithDebInfo', 'Release']
         config:
         - { os: ubuntu-latest }
-        py_version: ['3.6', '3.10']
+        py_version: ['3.12']
+    env:
+      CMAKE_BUILD_TYPE: ${{ matrix.build_type }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v2
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
         with:
+          enable-cache: true
           python-version: ${{ matrix.py_version }}
 
       - name: Install CGAL
         run: sudo apt-get -qq install libcgal-dev
 
-      - name: Install Python libraries
-        run: pip install -r requirements.txt
+      - name: Install the project
+        run: uv sync --group dev
 
-      - name: Configure
-        run: |
-          mkdir build && cd build
-          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} ..
-
-      - name: Build
-        run: |
-          cd build
-          cmake --build . --config ${{ matrix.build_type }}
-
-      - name: Test
-        run: |
-          cd build
-          cmake --build . --target check --config ${{ matrix.build_type }}
+      - name: Run tests
+        run: uv run python -m pytest test/
 
 
   benchmark:
     name: Benchmark Python ${{ matrix.py_version }} on ${{ matrix.config.os }} (${{ matrix.build_type }})
     runs-on: ${{ matrix.config.os }}
-    defaults:
-      run:
-        shell: bash
     strategy:
       fail-fast: false
       matrix:
         build_type: ['Release']
         config:
         - { os: ubuntu-latest }
-        py_version: ['3.10']
+        py_version: ['3.12']
+    env:
+      CMAKE_BUILD_TYPE: ${{ matrix.build_type }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v2
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
         with:
+          enable-cache: true
           python-version: ${{ matrix.py_version }}
           
       - name: Install CGAL
         run: sudo apt-get -qq install libcgal-dev
-        
-      - name: Install Python libraries
-        run: |
-          pip install -r requirements.txt
-          pip install matplotlib
 
-      - name: Configure
-        run: |
-          mkdir build && cd build
-          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_PREFIX_PATH=${{ matrix.config.prefix_path }} ..
+      - name: Install the project
+        run: uv sync --group dev
 
-      - name: Build
-        run: |
-          cd build
-          cmake --build . --config ${{ matrix.build_type }}
+      - name: Install matplotlib
+        run: uv pip install matplotlib
 
-      - name: Benchmark
-        run: |
-          cd build
-          cmake --build . --target benchmarks --config ${{ matrix.build_type }}
-          cmake --build . --target plots --config ${{ matrix.build_type }}
+      - name: Run benchmark
+        run: uv run python benchmark/benchmark.py
           
       - name: Upload benchmark results
         uses: actions/upload-artifact@v3
         with:
           name: benchmarks-${{ matrix.config.os }}-${{ matrix.build_type }}-python${{ matrix.py_version }}
-          path: ./build/benchmark/output/*
+          path: ./benchmark/output/*
 
   install:
     name: Install with Python ${{ matrix.py_version }} on ${{ matrix.config.os }}
     runs-on: ${{ matrix.config.os }}
-    defaults:
-      run:
-        shell: bash
     strategy:
       fail-fast: false
       matrix:
         config:
         - { os: ubuntu-latest }
-        py_version: ['3.6', '3.10']
+        py_version: ['3.12']
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v2
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
         with:
+          enable-cache: true
           python-version: ${{ matrix.py_version }}
 
       - name: Install CGAL
         run: sudo apt-get -qq install libcgal-dev
 
-      - name: Install Python libraries
-        run: pip install -r requirements.txt
-
-      - name: Install
-        run: |
-          python -m pip install --user .
+      - name: Install the project
+        run: uv sync
 
       - name: Verify installation
-        run: |
-          python -c 'import packaide'
+        run: uv run python -c 'import packaide'
           
-      - name: Test installation
-        run: |
-          mkdir build && cd build
-          cmake -DCMAKE_BUILD_TYPE=Release ..
-          cmake --build . --target check-installed --config Release
+      - name: Run tests
+        run: uv run python -m pytest test/
