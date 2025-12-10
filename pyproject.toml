@@ -57,8 +57,8 @@ test-command = "python {project}/test/test_packing.py"
 build = ["cp312-*", "cp313-*"]
 
 
-# Skip 32-bit builds
-skip = ["*-win32", "*-manylinux_i686"]
+# Skip 32-bit builds and musllinux (requires different setup)
+skip = ["*-win32", "*-manylinux_i686", "*-musllinux*"]
 
 # We install CGAL via Conda on Windows, but CMake doesn't know
 # where to find it by default.
