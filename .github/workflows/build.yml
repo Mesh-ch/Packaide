@@ -8,8 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # build_type: ['Debug', 'RelWithDebInfo', 'Release'] # Simplified build types for CI
-        build_type: ['Release'] # Simplified 
+        build_type: ['Release']
         config:
         - { os: ubuntu-latest }
         py_version: ['3.12']
@@ -32,46 +31,6 @@ jobs:
 
       - name: Run tests
         run: uv run python -m pytest test/
-
-  
-  # benchmark: # Removed temporarily to reduce CI load
-  #   name: Benchmark Python ${{ matrix.py_version }} on ${{ matrix.config.os }} (${{ matrix.build_type }})
-  #   runs-on: ${{ matrix.config.os }}
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       build_type: ['Release']
-  #       config:
-  #       - { os: ubuntu-latest }
-  #       py_version: ['3.12']
-  #   env:
-  #     CMAKE_BUILD_TYPE: ${{ matrix.build_type }}
-  #   steps:
-  #     - uses: actions/checkout@v4
-
-  #     - name: Install uv
-  #       uses: astral-sh/setup-uv@v7
-  #       with:
-  #         enable-cache: true
-  #         python-version: ${{ matrix.py_version }}
-          
-  #     - name: Install CGAL
-  #       run: sudo apt-get -qq install libcgal-dev
-
-  #     - name: Install the project
-  #       run: uv sync --group dev
-
-  #     - name: Install matplotlib
-  #       run: uv pip install matplotlib
-
-  #     - name: Run benchmark
-  #       run: uv run python benchmark/benchmark.py
-          
-  #     - name: Upload benchmark results
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: benchmarks-${{ matrix.config.os }}-${{ matrix.build_type }}-python${{ matrix.py_version }}
-  #         path: ./benchmark/output/*
 
   install:
     name: Install with Python ${{ matrix.py_version }} on ${{ matrix.config.os }}
@@ -102,6 +61,7 @@ jobs:
           
       - name: Run tests
         run: uv run python -m pytest test/
+
   build-wheels:
     name: Build wheels on ${{ matrix.os }} (Python ${{ matrix.python }})
     runs-on: ${{ matrix.os }}
@@ -115,61 +75,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # --------------------------------
+      # -----------------------------
       # Install Python
-      # --------------------------------
+      # -----------------------------
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
 
-      # ========================================
-      # LINUX WHEEL BUILD (manylinux via cibuildwheel)
-      # ========================================
-      - name: Install CGAL for Linux host (needed for source build)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y libcgal-dev gmp-dev libmpfr-dev
-
-      - name: Install cibuildwheel
-        if: matrix.os == 'ubuntu-latest'
-        run: pip install cibuildwheel
-
-      - name: Build Linux wheels (manylinux)
-        if: matrix.os == 'ubuntu-latest'
-        run: cibuildwheel --output-dir dist
-
-      # ========================================
-      # WINDOWS WHEEL BUILD (micromamba)
-      # ========================================
-      - name: Install CGAL (Windows via micromamba)
-        if: matrix.os == 'windows-latest'
-        uses: mamba-org/setup-micromamba@v1
-        with:
-          environment-name: build
-          create-args: >-
-            python=${{ matrix.python }}
-            cgal
-            boost-cpp
-            gmp
-            mpfr
-          channels: conda-forge
-          init-shell: cmd.exe powershell bash
-
-      - name: Install cibuildwheel + delvewheel inside env
-        if: matrix.os == 'windows-latest'
-        run: |
-          micromamba run -n build pip install cibuildwheel delvewheel
-
-      - name: Build Windows wheels
-        if: matrix.os == 'windows-latest'
+      # -----------------------------
+      # Windows: install CGAL stack into Miniconda
+      # -----------------------------
+      - name: Install CGAL and deps via conda-forge
+        if: startsWith(matrix.os, 'windows')
         shell: cmd
         run: |
-          micromamba run -n build cibuildwheel --output-dir dist
+          call C:\Miniconda\Scripts\activate
+          conda install -y -c conda-forge cgal boost-cpp gmp mpfr
 
-      # ========================================
-      # Upload wheels
-      # ========================================
+      # -----------------------------
+      # Install cibuildwheel in the runner Python
+      # (cibuildwheel will create its own build venvs)
+      # -----------------------------
+      - name: Install cibuildwheel
+        run: pip install cibuildwheel
+
+      # -----------------------------
+      # Build wheels
+      # -----------------------------
+      - name: Build wheels
+        run: cibuildwheel --output-dir dist
+
+      # -----------------------------
+      # Upload wheels as artifacts
+      # -----------------------------
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
